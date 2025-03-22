@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Messenger UI - TTS Request</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    .chat-container {
+      max-width: 600px;
+      margin: 30px auto;
+      background: #fff;
+      border-radius: 6px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-header {
+      background: #0b93f6;
+      color: #fff;
+      padding: 15px;
+      font-weight: bold;
+      font-size: 18px;
+      border-radius: 6px 6px 0 0;
+    }
+    .chat-messages {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+    }
+    .chat-bubble {
+      max-width: 80%;
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 10px;
+      line-height: 1.4;
+      clear: both;
+    }
+    .user-bubble {
+      background-color: #e5e5ea;
+      float: right;
+      text-align: right;
+    }
+    .bot-bubble {
+      background-color: #0b93f6;
+      color: #fff;
+      float: left;
+      text-align: left;
+    }
+    .chat-input {
+      display: flex;
+      border-top: 1px solid #ccc;
+    }
+    .chat-input textarea {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      resize: none;
+      outline: none;
+      font-size: 14px;
+    }
+    .chat-input button {
+      width: 100px;
+      border: none;
+      background: #0b93f6;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .chat-input button:hover {
+      background: #0870c7;
+    }
+    .audio-container {
+      margin: 10px 0;
+      display: flex;
+      align-items: center;
+    }
+    .audio-container audio {
+      margin-left: 10px;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">
+      Messenger-Style TTS
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+      <!-- Messages get appended here -->
+    </div>
+
+    <div class="chat-input">
+      <textarea id="userMessage" rows="3" placeholder="Type your message here..."></textarea>
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    // Replace with your actual key
+    const OPENAI_API_KEY = "sk-REPLACE_WITH_YOUR_ACTUAL_KEY";
+
+    // Hard-coded data for demonstration
+    const requestData = {
+      model: "gpt-4o-mini-tts",
+      voice: "onyx",
+      input: `Magandang hapon sa lahat! Ako si Coach EA, batikang network marketer, millionaires circle awardee, at kilala sa industriya nang higit dalawampu’t apat na taon. Nagsimula ako bilang isang simpleng empleyado na may malaking pangarap. Sabik noon, humahakot ng overtime, nagko-commute na halos walang tulog, pero ramdam ko na hindi sapat. Kaya nang may kumatok na oportunidad, agad akong humawak ng phone at sinubukang mag-inquire. Doon nagsimula ang matinding fascination ko sa network marketing. Bakit ko pinili ang landas na yan? Dahil nakita ko ang ganda ng leveraging at duplication. Ika nga, hindi lahat ay handang magtrabaho para sa pangarap nila, pero ako, handang sumugal. Dati, halos walang naniniwala, pero hinayaan ko na lang na ang resulta ang magsalita. Ngayon, nandito ako, nakatayo sa harap n’yo, punumpuno ng pasasalamat.
+
+Alam n’yo ba, habang nagsisimula pa lang ako, may panahong umabot sa puntong gustong-gusto kong sumuko. There was a time na naka-squat pa ako sa apartment ng kaibigan, walang stable income, at tatlong noodles lang sa kusina. Pero sumugal pa rin ako. Tumawag ako sa limang prospect at lahat sila tumanggi. Nalungkot ako, pero natawa rin sa sarili ko. Sabi ko, “Grabe, sobrang lubog na ako, ano pa bang mawawala?” Kaya sinubukan ko ulit, at isang prospect pa lang ang nag-yes—biglang nabago ang kwento ko. Lumawak ang network, dumami ang kliyente, at nakapagtayo ako ng sariling team.
+`,
+      instructions: `[Taglish Script with Voice Direction Notes]
+
+(Calm, composed, and reassuring. Start with a slower pace to convey genuine concern.)
+
+Speaker (slower pace, gentle tone):
+“Hey, friend. Unang-una, sobrang salamat sa pag-reach out mo sa amin. Alam ko na medyo nakakafrustrate kapag hindi maayos ang takbo ng mga bagay, kaya gusto ko lang sabihin… Pasensya na talaga sa abalang naidulot nito sa’yo.”
+
+(Pause briefly to let the apology sink in.)
+
+Speaker (still calm, but with empathetic warmth):
+“Ang laki ng pasasalamat ko sa patience mo, lalo na at alam kong gusto mo nang makuha ang solution. Huwag kang mag-alala; ginagawa namin ang lahat para maayos ‘to ASAP.”
+
+(Now slightly increase the pacing to show action and resolution.)
+
+Speaker (slightly faster pace, confident):
+“So ito ang gagawin namin: ipo-process na namin kaagad ang refund mo, at makikita mo ‘yan sa account mo in no time. At the same time, sisiguraduhin ng team namin na hindi na ‘to mangyari ulit. Promise, hawak namin ‘to.”
+
+(Mainta`,
+      response_format: "wav"
+    };
+
+    function appendMessage(content, isUser = false) {
+      const chatMessages = document.getElementById("chatMessages");
+      const bubble = document.createElement("div");
+      bubble.classList.add("chat-bubble");
+      bubble.classList.add(isUser ? "user-bubble" : "bot-bubble");
+      bubble.innerText = content;
+      chatMessages.appendChild(bubble);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function appendAudio(blob) {
+      const chatMessages = document.getElementById("chatMessages");
+      const container = document.createElement("div");
+      container.classList.add("audio-container");
+
+      const label = document.createElement("span");
+      label.textContent = "Audio Response:";
+
+      const audio = document.createElement("audio");
+      audio.controls = true;
+      audio.src = URL.createObjectURL(blob);
+
+      container.appendChild(label);
+      container.appendChild(audio);
+      chatMessages.appendChild(container);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function sendMessage() {
+      const userMsg = document.getElementById("userMessage").value.trim();
+      if (!userMsg) return;
+      appendMessage(userMsg, true);
+
+      // Example: ignoring user's input, sending hard-coded data
+      fetch("https://api.openai.com/v1/audio/speech", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(requestData)
+      })
+      .then(res => {
+        if (!res.ok) {
+          throw new Error("Request failed");
+        }
+        return res.blob();
+      })
+      .then(blob => {
+        appendMessage("Playing audio response...");
+        appendAudio(blob);
+      })
+      .catch(err => {
+        appendMessage("Error: " + err.message);
+      });
+
+      document.getElementById("userMessage").value = "";
+    }
+  </script>
+</body>
+</html>
